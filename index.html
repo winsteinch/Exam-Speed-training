@@ -1,0 +1,808 @@
+<title>Exam Pace Clock</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  :root{
+    --paper:#EEE8D8;
+    --paper-raise:#F7F3E7;
+    --ink:#201C16;
+    --ink-soft:#4A4234;
+    --oxblood:#7A1F2B;
+    --oxblood-strong:#5C141E;
+    --brass:#8C7A4E;
+    --slate:#4A5560;
+    --line:#C9BFA6;
+    --good:#3E6B4F;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#151311;
+      --paper-raise:#1E1B17;
+      --ink:#EDE7D8;
+      --ink-soft:#B8AE98;
+      --oxblood:#D3555F;
+      --oxblood-strong:#E27078;
+      --brass:#C2AC79;
+      --slate:#8CA0AE;
+      --line:#3B362B;
+      --good:#6FAE85;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#151311;
+    --paper-raise:#1E1B17;
+    --ink:#EDE7D8;
+    --ink-soft:#B8AE98;
+    --oxblood:#D3555F;
+    --oxblood-strong:#E27078;
+    --brass:#C2AC79;
+    --slate:#8CA0AE;
+    --line:#3B362B;
+    --good:#6FAE85;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+    padding-inline:16px;
+    min-height:100%;
+  }
+  html,body{height:100%;}
+  h1,h2,h3,.disp{
+    font-family:Oswald,"Arial Narrow",sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    text-wrap:balance;
+  }
+  .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;}
+  button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--oxblood);outline-offset:2px;}
+
+  /* ---------- layout shells ---------- */
+  #app{min-height:100%;display:flex;flex-direction:column;}
+  .screen{display:flex;flex-direction:column;align-items:center;width:100%;}
+  [hidden]{display:none!important;}
+
+  /* ================= SETUP SCREEN ================= */
+  #setup{padding-block:48px 40px;}
+  .sheet{
+    width:100%;max-width:460px;
+    background:var(--paper-raise);
+    border:1px solid var(--line);
+    border-radius:2px;
+    box-shadow:0 1px 0 var(--line), 0 18px 40px -24px rgba(0,0,0,.45);
+    padding:34px 30px 28px;
+    position:relative;
+  }
+  .stamp{
+    position:absolute;
+    top:-14px;left:26px;
+    background:var(--paper);
+    border:2px solid var(--oxblood);
+    color:var(--oxblood);
+    font-size:0.66rem;
+    font-weight:600;
+    letter-spacing:0.14em;
+    padding:5px 10px;
+    transform:rotate(-4deg);
+    border-radius:2px;
+  }
+  .sheet h1{font-size:clamp(1.7rem,5vw,2.15rem);margin:14px 0 6px;color:var(--ink);font-weight:600;}
+  .kicker{
+    font-style:italic;
+    color:var(--ink-soft);
+    font-size:0.98rem;
+    margin:0 0 20px;
+    line-height:1.5;
+  }
+  .rubric{
+    border:1px solid var(--line);
+    background:color-mix(in srgb, var(--paper) 60%, transparent);
+    padding:12px 14px;
+    font-size:0.87rem;
+    line-height:1.55;
+    color:var(--ink-soft);
+    margin-bottom:22px;
+    border-left:3px solid var(--brass);
+  }
+  .field{margin-bottom:18px;}
+  .field label{
+    display:block;
+    font-family:Oswald,sans-serif;
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field input[type=number]{
+    width:100%;
+    font-size:1.35rem;
+    padding:9px 12px;
+    border:1px solid var(--line);
+    border-bottom:2px solid var(--brass);
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:1px;
+  }
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .preset{
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.78rem;
+    padding:5px 9px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .preset:hover{border-color:var(--brass);color:var(--ink);}
+  .preset.active{background:var(--brass);border-color:var(--brass);color:var(--paper-raise);}
+
+  .toggles{display:flex;flex-direction:column;gap:10px;margin:6px 0 22px;}
+  .toggle-row{display:flex;align-items:center;gap:9px;font-size:0.88rem;color:var(--ink-soft);}
+  .toggle-row input{accent-color:var(--oxblood);width:16px;height:16px;}
+
+  .summary{
+    border-top:1px dashed var(--line);
+    border-bottom:1px dashed var(--line);
+    padding:14px 2px;
+    margin-bottom:24px;
+    font-size:0.95rem;
+    color:var(--ink);
+  }
+  .summary .total{
+    font-family:"JetBrains Mono",monospace;
+    font-size:1.5rem;
+    font-weight:700;
+    color:var(--oxblood);
+    display:block;
+    margin-top:4px;
+  }
+
+  .start-btn{
+    width:100%;
+    padding:15px;
+    background:var(--oxblood);
+    color:#F7F1E4;
+    border:1px solid var(--oxblood-strong);
+    font-family:Oswald,sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    border-radius:2px;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .start-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px var(--oxblood-strong);}
+  .start-btn:active{transform:translateY(0);}
+
+  .footnote{
+    text-align:center;
+    font-size:0.76rem;
+    color:var(--ink-soft);
+    margin-top:16px;
+    line-height:1.5;
+  }
+
+  /* ================= TIMER SCREEN (single dark world, immersive) ================= */
+  #timer{
+    position:fixed;inset:0;
+    background:#0B0A0A;
+    color:#EDE6D6;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:10;
+    padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);
+    transition:background .6s ease;
+  }
+  #timer.stress-1{background:#100B0B;}
+  #timer.stress-2{background:#150C0C;}
+  #timer.stress-3{background:#1C0D0D;}
+  .vignette{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 45%, rgba(122,31,43,0) 60%, rgba(122,31,43,.18) 100%);
+    transition:opacity .6s ease;
+    opacity:0;
+  }
+  #timer.stress-1 .vignette{opacity:.35;}
+  #timer.stress-2 .vignette{opacity:.6;}
+  #timer.stress-3 .vignette{opacity:1;animation:pulseVig var(--pulse-dur,1.4s) ease-in-out infinite;}
+  @keyframes pulseVig{0%,100%{opacity:.75;}50%{opacity:1;}}
+
+  .phase-label{
+    font-size:0.78rem;
+    letter-spacing:0.3em;
+    color:#9C8E76;
+    margin-bottom:18px;
+    transition:color .5s ease;
+  }
+  #timer.stress-3 .phase-label{color:#D3555F;}
+
+  .ring-wrap{position:relative;width:min(74vw,320px);aspect-ratio:1/1;}
+  .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .ring-track{fill:none;stroke:#2A2622;stroke-width:6;}
+  .ring-fill{fill:none;stroke:#8C7A4E;stroke-width:6;stroke-linecap:round;transition:stroke .5s ease;}
+  #timer.stress-2 .ring-fill{stroke:#B5623A;}
+  #timer.stress-3 .ring-fill{stroke:#D3555F;}
+  .clock-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .clock-time{font-size:clamp(2.6rem,11vw,4.6rem);font-weight:700;letter-spacing:0.01em;}
+  .clock-sub{font-size:0.72rem;color:#8C806C;margin-top:6px;letter-spacing:0.08em;}
+
+  .pace-readout{
+    margin-top:22px;
+    font-family:"Source Serif 4",serif;
+    font-style:italic;
+    color:#9C8E76;
+    font-size:0.92rem;
+    text-align:center;
+  }
+
+  .milestone-banner{
+    position:absolute;top:14%;left:50%;
+    transform:translate(-50%,-8px);
+    font-family:Oswald,sans-serif;
+    font-size:clamp(1rem,3.4vw,1.5rem);
+    letter-spacing:0.14em;
+    color:#F2EADA;
+    background:rgba(122,31,43,.88);
+    padding:10px 22px;
+    border-radius:2px;
+    opacity:0;
+    pointer-events:none;
+    text-transform:uppercase;
+  }
+  .milestone-banner.show{animation:banner 3.1s ease forwards;}
+  @keyframes banner{
+    0%{opacity:0;transform:translate(-50%,-8px);}
+    10%{opacity:1;transform:translate(-50%,0);}
+    82%{opacity:1;transform:translate(-50%,0);}
+    100%{opacity:0;transform:translate(-50%,-8px);}
+  }
+
+  .controls-bar{
+    position:absolute;bottom:20px;left:0;right:0;
+    display:flex;justify-content:center;gap:10px;
+    opacity:.55;
+    transition:opacity .25s ease;
+  }
+  .controls-bar:hover{opacity:1;}
+  .ctrl-btn{
+    background:transparent;
+    border:1px solid #3A342C;
+    color:#B8AE98;
+    font-family:Oswald,sans-serif;
+    font-size:0.68rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    padding:8px 13px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .ctrl-btn:hover{border-color:#8C7A4E;color:#EDE6D6;}
+
+  .distraction-overlay{
+    position:fixed;inset:0;z-index:20;
+    background:rgba(92,20,30,.94);
+    color:#F7F1E4;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:20px;
+  }
+  .distraction-overlay h2{font-size:clamp(1.6rem,7vw,2.6rem);margin:0 0 10px;}
+  .distraction-overlay p{font-family:"Source Serif 4",serif;font-style:italic;opacity:.85;}
+
+  /* ================= FINISHED SCREEN ================= */
+  #finished{
+    position:fixed;inset:0;z-index:15;
+    background:var(--paper);
+    color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:24px;
+  }
+  #finished h1{font-size:clamp(2.4rem,10vw,4rem);color:var(--oxblood);margin:0 0 8px;}
+  #finished .sub{font-style:italic;color:var(--ink-soft);margin-bottom:30px;font-size:1.05rem;}
+  .stat-grid{
+    display:grid;grid-template-columns:repeat(2,minmax(140px,1fr));
+    gap:1px;background:var(--line);
+    border:1px solid var(--line);
+    margin-bottom:30px;
+    max-width:420px;width:100%;
+  }
+  .stat{background:var(--paper-raise);padding:16px 12px;}
+  .stat .k{font-family:Oswald,sans-serif;font-size:0.66rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-soft);}
+  .stat .v{font-family:"JetBrains Mono",monospace;font-size:1.3rem;font-weight:700;margin-top:4px;}
+  .finish-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .finish-actions button{
+    padding:12px 22px;
+    font-family:Oswald,sans-serif;
+    font-size:0.85rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  #repeat-btn{background:var(--oxblood);color:#F7F1E4;border:1px solid var(--oxblood-strong);}
+  #new-btn{background:transparent;color:var(--ink);border:1px solid var(--line);}
+
+  @media (max-width:420px){
+    .sheet{padding:28px 18px 22px;}
+  }
+</style>
+
+<div id="app">
+  <!-- ===================== SETUP ===================== -->
+  <section id="setup" class="screen">
+    <div class="sheet">
+      <span class="stamp">Timed Practice</span>
+      <h1>Exam Pace Clock</h1>
+      <p class="kicker">Set your marks and your pace. When you press start, the room goes quiet and the clock takes over.</p>
+
+      <div class="rubric">
+        Enter the total marks you're attempting in this sitting and how many minutes you want per mark. Add reading time if your board allows it. Answer as if the invigilator is watching.
+      </div>
+
+      <div class="field">
+        <label for="in-marks">Marks in this sitting</label>
+        <input id="in-marks" type="number" inputmode="numeric" min="1" max="500" step="1" value="25">
+      </div>
+
+      <div class="field">
+        <label for="in-pace">Minutes per mark</label>
+        <input id="in-pace" type="number" inputmode="decimal" min="0.1" max="10" step="0.1" value="1.5">
+        <div class="presets" id="presets"></div>
+      </div>
+
+      <div class="field">
+        <label for="in-reading">Reading / planning time — optional, minutes</label>
+        <input id="in-reading" type="number" inputmode="numeric" min="0" max="60" step="1" value="0">
+      </div>
+
+      <div class="toggles">
+        <label class="toggle-row"><input type="checkbox" id="in-strict"> Strict mode — no pausing once the clock starts</label>
+        <label class="toggle-row"><input type="checkbox" id="in-sound" checked> Ticking clock and bell sound</label>
+      </div>
+
+      <div class="summary">
+        Writing time: <span id="sum-writing" class="mono">—</span><br>
+        <span id="sum-reading-line" hidden>Reading time: <span id="sum-reading" class="mono">—</span><br></span>
+        Total on the clock
+        <span class="total mono" id="sum-total">00:00</span>
+      </div>
+
+      <button class="start-btn" id="start-btn">Begin Sitting</button>
+      <p class="footnote">Your setup is remembered on this device only. Nothing is uploaded or shared.</p>
+    </div>
+  </section>
+
+  <!-- ===================== TIMER ===================== -->
+  <section id="timer" hidden>
+    <div class="vignette"></div>
+    <div class="phase-label" id="phase-label">READING TIME</div>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="90"></circle>
+        <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="90" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="clock-center">
+        <div class="clock-time mono" id="clock-time">00:00</div>
+        <div class="clock-sub" id="clock-sub">MM : SS REMAINING</div>
+      </div>
+    </div>
+    <div class="pace-readout" id="pace-readout">25 marks at 1.5 min/mark</div>
+    <div class="milestone-banner" id="milestone"></div>
+    <div class="controls-bar">
+      <button class="ctrl-btn" id="mute-btn">Mute</button>
+      <button class="ctrl-btn" id="pause-btn">Pause</button>
+      <button class="ctrl-btn" id="exit-btn">End Session</button>
+    </div>
+  </section>
+
+  <div class="distraction-overlay" id="distraction" hidden>
+    <h2>Eyes on your own paper</h2>
+    <p>The clock kept running while you were away.</p>
+  </div>
+
+  <!-- ===================== FINISHED ===================== -->
+  <section id="finished" hidden>
+    <h1 id="finish-headline">Pens Down</h1>
+    <p class="sub">Time's up. Step away from your paper.</p>
+    <div class="stat-grid">
+      <div class="stat"><div class="k">Marks attempted</div><div class="v mono" id="stat-marks">—</div></div>
+      <div class="stat"><div class="k">Target pace</div><div class="v mono" id="stat-pace">—</div></div>
+      <div class="stat"><div class="k">Time on the clock</div><div class="v mono" id="stat-time">—</div></div>
+      <div class="stat"><div class="k">Times distracted</div><div class="v mono" id="stat-distractions">—</div></div>
+    </div>
+    <div class="finish-actions">
+      <button id="repeat-btn">Repeat This Sitting</button>
+      <button id="new-btn">New Session</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CFG_KEY = "exam_pace_clock_cfg_v1";
+  var PRESETS = [1.0, 1.2, 1.5, 1.8, 2.0];
+  var CIRC = 2 * Math.PI * 90;
+
+  function loadCfg(){
+    try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveCfg(cfg){
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+    catch(e){}
+  }
+
+  var els = {
+    marks: document.getElementById("in-marks"),
+    pace: document.getElementById("in-pace"),
+    reading: document.getElementById("in-reading"),
+    strict: document.getElementById("in-strict"),
+    sound: document.getElementById("in-sound"),
+    presets: document.getElementById("presets"),
+    sumWriting: document.getElementById("sum-writing"),
+    sumReadingLine: document.getElementById("sum-reading-line"),
+    sumReading: document.getElementById("sum-reading"),
+    sumTotal: document.getElementById("sum-total"),
+    startBtn: document.getElementById("start-btn"),
+    setup: document.getElementById("setup"),
+    timer: document.getElementById("timer"),
+    finished: document.getElementById("finished"),
+    phaseLabel: document.getElementById("phase-label"),
+    ringFill: document.getElementById("ring-fill"),
+    clockTime: document.getElementById("clock-time"),
+    clockSub: document.getElementById("clock-sub"),
+    paceReadout: document.getElementById("pace-readout"),
+    milestone: document.getElementById("milestone"),
+    muteBtn: document.getElementById("mute-btn"),
+    pauseBtn: document.getElementById("pause-btn"),
+    exitBtn: document.getElementById("exit-btn"),
+    distraction: document.getElementById("distraction"),
+    statMarks: document.getElementById("stat-marks"),
+    statPace: document.getElementById("stat-pace"),
+    statTime: document.getElementById("stat-time"),
+    statDistractions: document.getElementById("stat-distractions"),
+    repeatBtn: document.getElementById("repeat-btn"),
+    newBtn: document.getElementById("new-btn")
+  };
+
+  var S = {
+    screen: "setup",
+    marks: 25,
+    pace: 1.5,
+    readingMins: 0,
+    strict: false,
+    muted: false,
+    phases: [],
+    phaseIndex: 0,
+    phaseEndAt: 0,
+    phaseDurationMs: 0,
+    paused: false,
+    pauseRemainingMs: 0,
+    distractions: 0,
+    milestonesFired: {},
+    audioCtx: null,
+    rafId: null
+  };
+
+  function fmtMMSS(totalSeconds){
+    totalSeconds = Math.max(0, Math.ceil(totalSeconds));
+    var m = Math.floor(totalSeconds / 60);
+    var s = totalSeconds % 60;
+    return (m < 10 ? "0" + m : "" + m) + ":" + (s < 10 ? "0" + s : "" + s);
+  }
+  function fmtMinutes(totalSeconds){
+    var mins = totalSeconds / 60;
+    if (Math.abs(mins - Math.round(mins)) < 0.01) return Math.round(mins) + " min";
+    return mins.toFixed(1) + " min";
+  }
+
+  /* ---------- setup screen wiring ---------- */
+  PRESETS.forEach(function(p){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "preset";
+    b.textContent = p.toFixed(1);
+    b.dataset.val = p;
+    b.addEventListener("click", function(){
+      els.pace.value = p;
+      updatePresetActive();
+      updateSummary();
+    });
+    els.presets.appendChild(b);
+  });
+
+  function updatePresetActive(){
+    var v = parseFloat(els.pace.value);
+    Array.prototype.forEach.call(els.presets.children, function(b){
+      b.classList.toggle("active", Math.abs(parseFloat(b.dataset.val) - v) < 0.001);
+    });
+  }
+
+  function updateSummary(){
+    var marks = Math.max(1, parseInt(els.marks.value, 10) || 1);
+    var pace = Math.max(0.1, parseFloat(els.pace.value) || 0.1);
+    var reading = Math.max(0, parseInt(els.reading.value, 10) || 0);
+    var writingSecs = Math.round(marks * pace * 60);
+    var readingSecs = reading * 60;
+    els.sumWriting.textContent = fmtMinutes(writingSecs) + " (" + marks + " × " + pace.toFixed(1) + ")";
+    if (reading > 0){
+      els.sumReadingLine.hidden = false;
+      els.sumReading.textContent = fmtMinutes(readingSecs);
+    } else {
+      els.sumReadingLine.hidden = true;
+    }
+    els.sumTotal.textContent = fmtMMSS(writingSecs + readingSecs);
+    updatePresetActive();
+  }
+
+  [els.marks, els.pace, els.reading].forEach(function(inp){
+    inp.addEventListener("input", updateSummary);
+  });
+
+  (function restoreCfg(){
+    var cfg = loadCfg();
+    if (cfg.marks) els.marks.value = cfg.marks;
+    if (cfg.pace) els.pace.value = cfg.pace;
+    if (typeof cfg.readingMins === "number") els.reading.value = cfg.readingMins;
+    if (cfg.strict) els.strict.checked = true;
+    if (cfg.sound === false) els.sound.checked = false;
+    updateSummary();
+  })();
+
+  /* ---------- audio ---------- */
+  function ensureAudio(){
+    if (S.audioCtx) return S.audioCtx;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      S.audioCtx = new Ctx();
+    } catch(e){ S.audioCtx = null; }
+    return S.audioCtx;
+  }
+  function tick(){
+    if (S.muted) return;
+    var ctx = ensureAudio();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.frequency.value = 1400;
+    gain.gain.setValueAtTime(0.05, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+  function chime(freqs, gap){
+    if (S.muted) return;
+    var ctx = ensureAudio();
+    if (!ctx) return;
+    freqs.forEach(function(f, i){
+      var t = ctx.currentTime + i * gap;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + gap * 0.95);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + gap);
+    });
+  }
+  function alarmBell(){ chime([880, 660, 880, 660, 990], 0.32); }
+  function milestoneChime(){ chime([660, 990], 0.18); }
+
+  /* ---------- milestone banner ---------- */
+  function showMilestone(text){
+    els.milestone.textContent = text;
+    els.milestone.classList.remove("show");
+    void els.milestone.offsetWidth;
+    els.milestone.classList.add("show");
+    milestoneChime();
+  }
+
+  /* ---------- countdown engine ---------- */
+  function buildPhases(marks, pace, readingMins){
+    var phases = [];
+    if (readingMins > 0){
+      phases.push({ name: "Reading Time", seconds: readingMins * 60 });
+    }
+    phases.push({ name: "Writing Time", seconds: Math.round(marks * pace * 60) });
+    return phases;
+  }
+
+  function startPhase(index){
+    S.phaseIndex = index;
+    var phase = S.phases[index];
+    S.phaseDurationMs = phase.seconds * 1000;
+    S.phaseEndAt = Date.now() + S.phaseDurationMs;
+    S.milestonesFired = {};
+    els.phaseLabel.textContent = phase.name.toUpperCase();
+  }
+
+  function stressLevelFor(fraction){
+    if (fraction <= 0.10) return 3;
+    if (fraction <= 0.25) return 2;
+    if (fraction <= 0.5) return 1;
+    return 0;
+  }
+
+  function checkMilestones(remainingSec, totalSec){
+    var frac = remainingSec / totalSec;
+    var abs = [
+      [300, "5 Minutes Remaining"],
+      [60, "1 Minute Remaining"],
+      [30, "30 Seconds Remaining"]
+    ];
+    abs.forEach(function(pair){
+      var secs = pair[0], label = pair[1];
+      if (totalSec > secs * 1.15 && remainingSec <= secs && !S.milestonesFired["a" + secs]){
+        S.milestonesFired["a" + secs] = true;
+        showMilestone(label);
+      }
+    });
+    [[0.5, "Halfway"], [0.25, "Quarter Time Left"]].forEach(function(pair){
+      var f = pair[0], label = pair[1];
+      if (frac <= f && !S.milestonesFired["f" + f] && remainingSec > 3){
+        S.milestonesFired["f" + f] = true;
+        showMilestone(label);
+      }
+    });
+  }
+
+  var lastTickSecond = null;
+
+  function frame(){
+    if (S.paused){ S.rafId = requestAnimationFrame(frame); return; }
+    var remainingMs = S.phaseEndAt - Date.now();
+    var phase = S.phases[S.phaseIndex];
+    var totalSec = phase.seconds;
+    var remainingSec = remainingMs / 1000;
+
+    if (remainingSec <= 0){
+      if (S.phaseIndex < S.phases.length - 1){
+        showMilestone(phase.name + " Over");
+        startPhase(S.phaseIndex + 1);
+      } else {
+        finishSession();
+        return;
+      }
+    } else {
+      var wholeSec = Math.ceil(remainingSec);
+      if (wholeSec !== lastTickSecond){
+        lastTickSecond = wholeSec;
+        tick();
+        checkMilestones(remainingSec, totalSec);
+      }
+      var frac = Math.max(0, remainingSec / totalSec);
+      els.clockTime.textContent = fmtMMSS(remainingSec);
+      els.clockSub.textContent = phase.name.toUpperCase() + " REMAINING";
+      els.ringFill.setAttribute("stroke-dashoffset", (CIRC * (1 - frac)).toFixed(2));
+
+      var lvl = stressLevelFor(frac);
+      els.timer.classList.remove("stress-0","stress-1","stress-2","stress-3");
+      els.timer.classList.add("stress-" + lvl);
+      var pulseDur = lvl === 3 ? Math.max(0.5, 0.5 + frac * 4) : 1.4;
+      els.timer.style.setProperty("--pulse-dur", pulseDur.toFixed(2) + "s");
+    }
+    S.rafId = requestAnimationFrame(frame);
+  }
+
+  function goFullscreen(){
+    try {
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) req.call(el).catch(function(){});
+    } catch(e){}
+  }
+  function exitFullscreen(){
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+    } catch(e){}
+  }
+
+  function beginSession(){
+    var marks = Math.max(1, parseInt(els.marks.value, 10) || 1);
+    var pace = Math.max(0.1, parseFloat(els.pace.value) || 0.1);
+    var readingMins = Math.max(0, parseInt(els.reading.value, 10) || 0);
+    var strict = els.strict.checked;
+    var sound = els.sound.checked;
+
+    saveCfg({ marks: marks, pace: pace, readingMins: readingMins, strict: strict, sound: sound });
+
+    ensureAudio();
+
+    S.marks = marks; S.pace = pace; S.readingMins = readingMins;
+    S.strict = strict; S.muted = !sound;
+    S.distractions = 0;
+    S.paused = false;
+    S.phases = buildPhases(marks, pace, readingMins);
+    lastTickSecond = null;
+
+    els.paceReadout.textContent = marks + " marks at " + pace.toFixed(1) + " min/mark" + (readingMins > 0 ? " · " + readingMins + " min reading" : "");
+    els.pauseBtn.hidden = strict;
+    els.muteBtn.textContent = S.muted ? "Unmute" : "Mute";
+
+    startPhase(0);
+    els.setup.hidden = true;
+    els.timer.hidden = false;
+    els.finished.hidden = true;
+    goFullscreen();
+
+    if (S.rafId) cancelAnimationFrame(S.rafId);
+    S.rafId = requestAnimationFrame(frame);
+  }
+
+  function finishSession(){
+    if (S.rafId) cancelAnimationFrame(S.rafId);
+    alarmBell();
+    var writingSecs = S.phases[S.phases.length - 1].seconds;
+    var totalSecs = S.phases.reduce(function(a, p){ return a + p.seconds; }, 0);
+    els.statMarks.textContent = S.marks;
+    els.statPace.textContent = S.pace.toFixed(1) + " min/mark";
+    els.statTime.textContent = fmtMMSS(totalSecs);
+    els.statDistractions.textContent = S.distractions;
+    void writingSecs;
+
+    els.timer.hidden = true;
+    els.finished.hidden = false;
+    exitFullscreen();
+  }
+
+  function togglePause(){
+    if (S.strict) return;
+    S.paused = !S.paused;
+    if (S.paused){
+      S.pauseRemainingMs = S.phaseEndAt - Date.now();
+      els.pauseBtn.textContent = "Resume";
+    } else {
+      S.phaseEndAt = Date.now() + S.pauseRemainingMs;
+      lastTickSecond = null;
+      els.pauseBtn.textContent = "Pause";
+    }
+  }
+
+  function endSessionEarly(){
+    if (S.rafId) cancelAnimationFrame(S.rafId);
+    exitFullscreen();
+    els.timer.hidden = true;
+    els.setup.hidden = false;
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden && S.screenIsTimer()){
+      S.distractions += 1;
+      els.distraction.hidden = false;
+    } else {
+      els.distraction.hidden = true;
+    }
+  });
+  S.screenIsTimer = function(){ return !els.timer.hidden; };
+
+  els.startBtn.addEventListener("click", beginSession);
+  els.muteBtn.addEventListener("click", function(){
+    S.muted = !S.muted;
+    els.muteBtn.textContent = S.muted ? "Unmute" : "Mute";
+  });
+  els.pauseBtn.addEventListener("click", togglePause);
+  els.exitBtn.addEventListener("click", endSessionEarly);
+  els.repeatBtn.addEventListener("click", function(){
+    els.finished.hidden = true;
+    beginSession();
+  });
+  els.newBtn.addEventListener("click", function(){
+    els.finished.hidden = true;
+    els.setup.hidden = false;
+  });
+
+  updateSummary();
+})();
+</script>
